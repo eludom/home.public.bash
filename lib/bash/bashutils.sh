@@ -1,7 +1,15 @@
 # These are common functions and settings I use when writing things in bash
-#
 # Usage: source $HOME/lib/bash/bashutils.sh
-set -e; set -u
+
+# TODO Make set -u and set -e selectable
+#
+#   These does not work well in interactive shells.
+#
+#   Possibly figure out how to detect login/interactive shell
+#   and only set if not in login/interactive shell
+#
+#set -u
+#set -e
 
 ARGV=("$@")
 ARGC=("$#")
