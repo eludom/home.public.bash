@@ -42,12 +42,15 @@ function stackfuncs {
     tracefuncs=""   # stacktrace functions, lowest (in call stack) to hightest
 
     local i=${1:-1} size=${#BASH_SOURCE[@]}
-    ((i<size)) && echodbg "STACKTRACE"
+    #((i<size)) && echodbg "STACKTRACE"
     for ((; i < size-1; i++)) ;do  ## -1 to exclude main()
         ((frame=${#BASH_SOURCE[@]}-i-2 ))
+        #echodbg "[$frame] ${BASH_SOURCE[$i]:-}:${BASH_LINENO[$i]} ${FUNCNAME[$i+1]}()"
         tracefuncs="${FUNCNAME[$i+1]}:${tracefuncs}"
         topfunc="${FUNCNAME[$i+1]}"
     done
+
+    tracefuncs=`echo $tracefuncs | sed 's#:$##'`
 
     echo "${tracefuncs:-unknown}"
 }
