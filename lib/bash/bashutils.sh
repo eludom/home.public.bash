@@ -19,25 +19,43 @@ ARGC=("$#")
 # Helper functions
 
 
-# TODO improve use of func
-#      - "bash"        ::  if just called from shell
-#      - $0            ::  if just in the name body of a script
-#      - $0:$FUNCNAME  ::  if in a function
-
-if [[ -v 0 ]]; then
-    if [[ "$0" == "-bash" ]]; then
-        PROG="bash"
-    else
-        PROG=`basename "$0" | tr -d '\n'`
-    fi
-else
-    PROG="unknown"
-fi
 
 
-function info()  { echo `date +%c` ${PROG}\: info: "$@" 1>&2; }
-function warn()  { echo `date +%c` ${PROG}\: warning: "$@" 1>&2; }
-function error() { echo `date +%c` ${PROG}\: error: "$@" 1>&2; }
+# Deep bash magic from before the dwan of time...
+# https://gitlab.com/kyb/autorsync/-/blob/master/utils.bash#L84
+
+function echodbg  { >/dev/stderr echo $'\e[0;36m'"DBG  $@"$'\e[0m'; }
+
+function stacktrace2 {
+   local i=${1:-1} size=${#BASH_SOURCE[@]}
+   ((i<size)) && echodbg "STACKTRACE"
+   for ((; i < size-1; i++)) ;do  ## -1 to exclude main()
+      ((frame=${#BASH_SOURCE[@]}-i-2 ))
+      echodbg "[$frame] ${BASH_SOURCE[$i]:-}:${BASH_LINENO[$i]} ${FUNCNAME[$i+1]}()"
+   done
+}
+
+
+function stackfuncs {
+    # echo stack function list, colon separated, top to bottom in call order
+
+    tracefuncs=""   # stacktrace functions, lowest (in call stack) to hightest
+
+    local i=${1:-1} size=${#BASH_SOURCE[@]}
+    ((i<size)) && echodbg "STACKTRACE"
+    for ((; i < size-1; i++)) ;do  ## -1 to exclude main()
+        ((frame=${#BASH_SOURCE[@]}-i-2 ))
+        tracefuncs="${FUNCNAME[$i+1]}:${tracefuncs}"
+        topfunc="${FUNCNAME[$i+1]}"
+    done
+
+    echo "${tracefuncs:-unknown}"
+}
+
+
+function info()  { echo `date +%c` `stackfuncs`\: info: "$@" 1>&2; }
+function warn()  { echo `date +%c` `stackfuncs`\: warning: "$@" 1>&2; }
+function error() { echo `date +%c` `stackfuncs`\: error: "$@" 1>&2; }
 # Temporary debug messages
 #   DEBUG=1 debug foo
 #
@@ -48,5 +66,5 @@ function error() { echo `date +%c` ${PROG}\: error: "$@" 1>&2; }
 #
 # TODO
 #   have it check debug levels and or strings
-function debug() { [[ -v DEBUG ]] && echo `date +%c` ${PROG}\: debug: "$@" 1>&2 || true ; }
-function die()   { echo `date +%c` ${PROG}\: fatal: "$@" 1>&2 && exit 1; }
+function debug() { [[ -v DEBUG ]] && echo `date +%c` `stackfuncs`\: debug: "$@" 1>&2 || true ; }
+function die()   { echo `date +%c` `stackfuncs`\: fatal: "$@" 1>&2 && exit 1; }
