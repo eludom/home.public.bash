@@ -61,3 +61,10 @@ EOF
     (exec $cmd)
 
 )
+
+function csvls()
+(
+    # ls as csv
+    # https://stackoverflow.com/questions/14573262/convert-ls-output-into-csv
+    find . -ls | awk '{printf( "%s,%s,%s,%s,%s,%s,%s,%s %s %s,%s\n", $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11 )}'
+)
