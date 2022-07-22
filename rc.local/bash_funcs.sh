@@ -57,7 +57,7 @@ EOF
 
     cmd="find . -type f -mtime -${days} $files_flag -exec egrep --color=always -H -i ${regex} {} ;"
     debug "command: ${cmd}"
-    
+
     (exec $cmd)
 
 )
@@ -68,3 +68,32 @@ function csvls()
     # https://stackoverflow.com/questions/14573262/convert-ls-output-into-csv
     find . -ls | awk '{printf( "%s,%s,%s,%s,%s,%s,%s,%s %s %s,%s\n", $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11 )}'
 )
+
+# Find recently modified files or directories
+# The intent is to find "things I've been working on recently"
+
+function recentf ()
+{
+    # find recently modified files
+    #
+    # Usage: recentf [days [dirctory]]
+
+    find ${2:-.} -mtime -${1:-3} -print | \
+        egvi \.git | \
+        sort | \
+        uniq
+}
+
+
+function recentd ()
+{
+    # find directories with recently modified files
+    #
+    # Usage: recentd [days [dirctory]]
+
+    find ${2:-.} -mtime -${1:-3} -print | \
+        egvi \.git | \
+        sed 's#/[^/]*$##' | \
+        sort | \
+        uniq
+}
