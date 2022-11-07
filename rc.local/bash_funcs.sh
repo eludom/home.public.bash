@@ -32,6 +32,8 @@ Examples:
   gf BEGIN\|END .org 7
 EOF
 
+# TODO re-write this with ligitimate getopt parsing so things like this work
+# find . -mtime -360 -type f -name \*.org -exec grep -H "that were blocked" \{\} \;
 
         if [[ "${message}" != "" ]]; then
            echo 2>&1
@@ -77,6 +79,11 @@ alias nojunk="egrep -vi \.snap\|\.config\|\.cache\|.git\|.local"
 # The intent is to find "things I've been working on recently"
 
 function recentf ()
+# find recently modified files
+#
+# Usage: recentf [DIR [AGE]]
+#
+#  Defaults: DIR=., AGE=3
 {
     # find recently modified files
     #
