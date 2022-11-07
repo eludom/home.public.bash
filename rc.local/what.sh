@@ -12,7 +12,6 @@ function what () {
         return
     fi
 
-    echo FOO
     alias | grep -i "alias $1=" || \
         declare -f $1 || \
         compgen -b $1 || \
