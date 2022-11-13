@@ -4,7 +4,7 @@ function latest (
     # This is really just a wrapper around find -exec grep,
     # but it encapsulates some defaults/patterns I use a lot
     #
-    #   - Looking for recently modified (AGE) files
+    #   - Looking for recently modified (MTIME) files
     #   - Looking at certain types of files (WHAT, e.g. .org)
     #   - Looking in the current directory (WHERE) usually
     #   - Grep(1)ing for file content (GREP)
@@ -23,7 +23,7 @@ function latest (
     # Defaults for parameters that control find(1)
     #
     WHAT=${WHAT:-org}
-    AGE=${AGE:-7}
+    MTIME=${MTIME:-7}
     WHERE=${WHERE:-.}
     # define filenames/paths to be ignored
     #   "junk" stanard on linux systems
@@ -44,7 +44,7 @@ function latest (
     function usage ()  {
         message=${1:-""}
         cat <<EOF 1>&2
-Usage: latest [options] [WHERE] [AGE] [[WHAT] REGEX]]
+Usage: latest [options] [WHERE] [MTIME] [[WHAT] REGEX]]
 
        find the latest files and what's in them.
 
@@ -52,7 +52,7 @@ Options
   -h|--help            print help text
 
   Find Optons
-  -a|--age=AGE         Max age of files to find.   Default: $AGE
+     --mtime=MTIME     Max age of files to find.   Default: $MTIME
   -w|--where=DIR       Where to search for files.  Default: $WHERE
 
   Grep Options
@@ -62,8 +62,8 @@ Options
 
 Arguments
   First one or two positons.
-    WHERE         A path (incuding "/").  Overrides -w.
-    AGE           Max age.  Digits.  Overrides -a.
+    WHERE           A path (incuding "/").  Overrides -w.
+    MTIME           Max age.  Digits.  Overrides --mtime.
 
   First non-age (digits), non-path (contains "/") argument
     WHAT		Filenames to search for, in full path.  Default: $WHAT
@@ -101,7 +101,7 @@ EOF
         -d|--debug)	DEBUG=1 && shift;;
 
         # Fine opions
-        -a|--age)	shift; AGE="$1"; [[ $# > 0 ]] && shift || die '--age requires an argument';;
+           --mtime)	shift; MTIME="$1"; [[ $# > 0 ]] && shift || die '--age requires an argument';;
         -w|--where)	shift; WHERE="$1" && shift || die '--where requires an argument';;
 
         # Grep options
@@ -125,7 +125,7 @@ EOF
             WHERE=$1;
             shift;
         elif [[ "$1" =~ ^[0-9]+$ ]]; then
-            AGE="$1"
+            MTIME="$1"
             shift
         elif [[ $found_what == true ]]; then
             REGEX="$1";
@@ -169,8 +169,8 @@ EOF
         -regex "${prune}" -prune -o \
         `: only look at regular files ` \
         -type f \
-        `: restrict to mtime AGE days ago` \
-        -mtime -${AGE}\
+        `: restrict to mtime MTIME days ago` \
+        -mtime -${MTIME}\
         `: restrict to files that match WHAT in full path` \
         -regex ".*${WHAT}.*" \
         ${GREPFLAGS[*]}
