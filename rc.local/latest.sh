@@ -42,14 +42,15 @@ function latest (
 
 
     function usage ()  {
-        message=${1:-""}
+        verbosity=${1:-"short"}
+
         cat <<EOF 1>&2
 Usage: latest [options] [WHERE] [MTIME] [[WHAT] REGEX]]
-
-       find the latest files and what's in them.
+Find the latest files and what's in them.
 
 Options
-  -h|--help            print help text
+  -h                   print short help text
+     --help            print long help text
   -d|--debug           print debugging
 
   Find Optons
@@ -71,23 +72,39 @@ Arguments
 
   Second non-age (digits), non-path (contains "/") argument
     REGEX         Regex to grep.  Overrrides -g.
+EOF
+
+        if [ "$verbosity" == "long" ]; then
+            cat <<EOF2 1>&2
 
 Examples:
-  # find latest .org files in current directorry
-    lastest
 
-  # find .sql files modified in the last 30 days in the home directory
-    latest -a 30 -w $HOME sql
-      or
-    latest 30 $HOME sql
+# default: find latest .org files in the current directory
+$ latest
+./test.org
 
-  # find python files with "pandas"
-    latest -g pandas .py
-      or
-    latest .py pandas
+# find org files with an mtime <= 14 days in the current directory
+$ latest 14
+./test.org
+./xxy.org
+
+# Find latest .txt files in current directory
+$ latest .txt
+./foo.txt
+
+# Find latest .txt files and grep for "baz"
+$ latest .txt baz
+./foo.txt:foo bar baz
+./foo.txt:foo|bar|baz
+
+# Find org files in ~/Org and grep for "DONE"
+$ latest ~/Org .org DONE
+/home/gmj/Org/agenda-files/blogging.org:**** DONE g/re/p
+/home/gmj/Org/agenda-files/blogging.org:**** DONE Write next "40 years of walled garden & open platforms" article
+EOF2
+        fi
 
 
-EOF
 
     }
 
@@ -98,7 +115,8 @@ EOF
     # parse optons
     while [[ $# > 0 ]]; do
         case ${1} in
-        -h|--help)	usage && return 1;;
+        -h)             usage "short" && return 1;;
+            --help)	usage "long" && return 1;;
         -d|--debug)	DEBUG=1 && shift;;
 
         # Fine opions
