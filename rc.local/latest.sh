@@ -50,6 +50,7 @@ Usage: latest [options] [WHERE] [MTIME] [[WHAT] REGEX]]
 
 Options
   -h|--help            print help text
+  -d|--debug           print debugging
 
   Find Optons
      --mtime=MTIME     Max age of files to find.   Default: $MTIME
@@ -101,11 +102,18 @@ EOF
         -d|--debug)	DEBUG=1 && shift;;
 
         # Fine opions
-           --mtime)	shift; MTIME="$1"; [[ $# > 0 ]] && shift || die '--age requires an argument';;
-        -w|--where)	shift; WHERE="$1" && shift || die '--where requires an argument';;
+           --mtime)
+               shift;
+               MTIME="$1"; [[ $# > 0 ]] && shift || die '--age requires an argument';;
+           -w|--where)
+               shift;
+               WHERE="$1" && shift || die '--where requires an argument';;
 
         # Grep options
-        -g|--grep)	shift; REGEX="${1}" && shift || die '--grep requires an argument';;
+        -g|--grep)
+            shift;
+            REGEX="${1}" && shift || die '--grep requires an argument';
+            ;;
         -i|--ignore-case)
             shift;
             GREPFLAGS+=("-i");;
@@ -137,29 +145,26 @@ EOF
             shift;
         fi
 
-        # if [[ $# == 0 ]]; then
-        #     break
-        # fi
     done
 
-    # if [[ $# = 1 ]]; then
-    #     WHAT="$1"
-    # elif [[ $# = 2 ]]; then
-    #     WHAT="$1"
-    #     REGEX="$2"
+    # Do things to make regular expressions pass down correctly
+    #
+    # echo REGEX before regex fixes '>'$REGEX'<'
+    #   - ' ' -> '\\s'
+    REGEX=`echo "$REGEX" | sed 's# #\\\s#g'`
+    # echo REGEX after regex fixes '>'$REGEX'<'
+
     if [[ $# > 0 ]]; then
         die "too many arguments given.  At most 3 allowed.  Unknow: ${ARGV[*]}"
     fi
 
-
-   if [[ -v REGEX ]]; then
+    if [[ ${REGEX} != "" ]]; then
        GREPFLAGS=("-exec" "grep" ${GREPFLAGS[@]} "--color=always" "-H ""-E"  "$REGEX" '{}' ';')
    else
        GREPFLAGS=( '-print' )
    fi
 
    [[ -v DEBUG ]] && set -x
-
 
    find -L ${WHERE} \
         `: global options` \
