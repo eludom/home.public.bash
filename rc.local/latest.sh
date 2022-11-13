@@ -1,5 +1,5 @@
 function latest (
-    # Find lastest modified files and grep them.
+    # Find lastest modified files[ and grep them].  Because my life is in .org files now...
     #
     # This is really just a wrapper around find -exec grep,
     # but it encapsulates some defaults/patterns I use a lot
@@ -49,11 +49,16 @@ Usage: latest [options] [WHERE] [AGE] [[WHAT] REGEX]]
        find the latest files and what's in them.
 
 Options
-  -a|--age=AGE         Max age of files to find.   Default: $AGE
   -h|--help            print help text
-  -g|--grep=REGEX      Regex to grep in files.     Default: None.
-  -s|--sensitive       Grep is case sensitive.     Default: case insensitive.
+
+  Find Optons
+  -a|--age=AGE         Max age of files to find.   Default: $AGE
   -w|--where=DIR       Where to search for files.  Default: $WHERE
+
+  Grep Options
+  -i|--ignore-case     Ignore case.                Default: case sensitive.
+  -g|--grep=REGEX      Regex to grep in files.     Default: None.
+
 
 Arguments
   First one or two positons.
@@ -85,14 +90,25 @@ EOF
 
     }
 
+    # Save extra FIND/GREP flags here
+    FINDFLAGS=()
+    GREPFLAGS=()
+
     # parse optons
     while [[ $# > 0 ]]; do
-      case ${1} in
-        -a|--age)	shift; AGE="$1"; [[ $# > 0 ]] && shift || die '--age requires an argument';;
-        -d|--debug)	DEBUG=1 && shift;;
-        -g|--grep)	shift; REGEX="${1}" && shift || die '--grep requires an argument';;
+        case ${1} in
         -h|--help)	usage && return 1;;
+        -d|--debug)	DEBUG=1 && shift;;
+
+        # Fine opions
+        -a|--age)	shift; AGE="$1"; [[ $# > 0 ]] && shift || die '--age requires an argument';;
         -w|--where)	shift; WHERE="$1" && shift || die '--where requires an argument';;
+
+        # Grep options
+        -g|--grep)	shift; REGEX="${1}" && shift || die '--grep requires an argument';;
+        -i|--ignore-case)
+            shift;
+            GREPFLAGS+=("-i");;
         -*)              error "Unknown flag: $1" && return 1;;
         *)             break;;
        esac
@@ -135,14 +151,15 @@ EOF
         die "too many arguments given.  At most 3 allowed.  Unknow: ${ARGV[*]}"
     fi
 
-   [[ -v DEBUG ]] && set -x
 
-   GREPFLAGS=()
    if [[ -v REGEX ]]; then
-       GREPFLAGS=("-exec" "grep" "--color=always" "-H ""-E"  "$REGEX" '{}' ';')
+       GREPFLAGS=("-exec" "grep" ${GREPFLAGS[@]} "--color=always" "-H ""-E"  "$REGEX" '{}' ';')
    else
        GREPFLAGS=( '-print' )
    fi
+
+   [[ -v DEBUG ]] && set -x
+
 
    find -L ${WHERE} \
         `: global options` \
