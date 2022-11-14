@@ -17,7 +17,15 @@ function latest (
     `: fall back to echo`
     alias info=echo && \
     alias warn=echo && \
-    alias error=echo
+    alias error=echo && \
+    function die { echo "$@"; exit 1; }
+
+    #
+    # check dependancies
+    #
+
+    TIMEOUT=30 # max run at 30 seconds
+    which timeout > /dev/null || die "Timeout not found"
 
     #
     # Defaults for parameters that control find(1)
@@ -27,7 +35,7 @@ function latest (
     WHERE=${WHERE:-.}
     # define filenames/paths to be ignored
     #   "junk" stanard on linux systems
-    PRUNE_LINUX='git/|backups/|auto-save-list|config/|snap/|cache/|local/|mozilla/|target/|.rustup/|.cargo/'
+    PRUNE_LINUX='git/|backups/|auto-save-list|config/|snap/|cache/|local/|mozilla/|target/|.rustup/|.cargo/|.venv'
     #   junk specific to me  Your junk milage may vary.
     PRUNE_JUST_ME='blog/docs'
     PRUNE=".*(${PRUNE_JUST_ME}|${PRUNE_LINUX}).*"
@@ -182,21 +190,38 @@ EOF2
        GREPFLAGS=( '-print' )
    fi
 
-   [[ -v DEBUG ]] && set -x
+    [[ -v DEBUG ]] && set -x
 
-   find -L ${WHERE} \
+    # this shoud be removed;  If not, find failed/timed out
+    RUNNING=$(mktemp /tmp/latest.XXXXXX)
+
+    # Run in a subshell to allow timeout
+    ( \
+      `: limit run to TIMEOUT seconds` \
+        timeout $TIMEOUT \
+        find -L ${WHERE} \
         `: global options` \
-        `: prune 'junk' files and dirs` \
         -regextype posix-extended \
         -xdev \
-        -regex "${prune}" -prune -o \
+        `: prune 'junk' files and dirs` \
+        -regex "${PRUNE}" -prune -o \
         `: only look at regular files ` \
         -type f \
         `: restrict to mtime MTIME days ago` \
         -mtime -${MTIME}\
         `: restrict to files that match WHAT in full path` \
         -regex ".*${WHAT}.*" \
-        ${GREPFLAGS[*]}
+        `: run grep if requestd` \
+        ${GREPFLAGS[*]} && \
+        `: If find finished, remove RUNNING file.  Timeout will leave it.` \
+         \rm -f $RUNNING \
+        ) \
+        # |& grep -v -E ': Permission|: Too many levels'
+
+    if [[ -f "${RUNNING}" ]]; then
+        warn "Find did not finish.  Timeout or error";
+        \rm ${RUNNING}
+    fi
 
     [[ -v DEBUG ]] && set +x
 )
