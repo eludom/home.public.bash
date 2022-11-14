@@ -42,6 +42,7 @@ function latest (
     #
     # defaults for parameters that control grep of file content
     #
+    GREPCOLOR="always"
     GREP=${GREP:-}
     #
     # define errors to be ignored
@@ -62,13 +63,15 @@ Options
   -d|--debug           print debugging
 
   Find Optons
-     --mtime=MTIME     Max age of files to find.   Default: $MTIME
-  -w|--where=DIR       Where to search for files.  Default: $WHERE
+     --mtime MTIME     Max age of files to find.   Default: $MTIME
+  -w|--where DIR       Where to search for files.  Default: $WHERE
 
   Grep Options
+    |--color COLOR     Grep color.                 Default: $GREPCOLOR
+                       "always","never", or "auto".
   -i|--ignore-case     Ignore case.                Default: case sensitive.
-  -g|--grep=REGEX      Regex to grep in files.     Default: None.
-
+  -g|--grep REGEX      Regex to grep in files.     Default: None.
+  -l|--files-with-matches Only print filename      Default: print match as well.
 
 Arguments
   First one or two positons.
@@ -136,6 +139,11 @@ EOF2
                WHERE="$1" && shift || die '--where requires an argument';;
 
         # Grep options
+           --color)
+            shift;
+            GREPCOLOR="${1}" && shift || die '--color requires an argument';
+            ;;
+
         -g|--grep)
             shift;
             REGEX="${1}" && shift || die '--grep requires an argument';
@@ -143,6 +151,9 @@ EOF2
         -i|--ignore-case)
             shift;
             GREPFLAGS+=("-i");;
+        -l|--files-with-matches)
+            shift;
+            GREPFLAGS+=("-l");;
         -*)              error "Unknown flag: $1" && return 1;;
         *)             break;;
        esac
@@ -185,7 +196,7 @@ EOF2
     fi
 
     if [[ ${REGEX} != "" ]]; then
-       GREPFLAGS=("-exec" "grep" ${GREPFLAGS[@]} "--color=always" "-H ""-E"  "$REGEX" '{}' ';')
+       GREPFLAGS=("-exec" "grep" ${GREPFLAGS[@]} "--color=${GREPCOLOR}" "-H ""-E"  "$REGEX" '{}' ';')
    else
        GREPFLAGS=( '-print' )
    fi
