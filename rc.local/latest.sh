@@ -1,4 +1,14 @@
+# shellcheck shell=bash
+
+# shellcheck disable=SC3046 # "source" is more readable than "."
+# shellcheck disable=SC1090 # allow source from other locations
+# shellcheck disable=SC2112 # "function" is more readable than "()"
+
+# "(" IS valid here.  Function is subshell, own namespace.
+
+# shellcheck disable=SC1036,SC1065,SC1088
 function latest (
+
     # Find lastest modified files[ and grep them].  Because my life is in .org files now...
     #
     # This is really just a wrapper around find -exec grep,
@@ -12,12 +22,18 @@ function latest (
     #     + usually using --color
     #   - Ignoring junk (PRUNE)
 
+
+    # This is bash.  Be safe.
+    set -u
+    set -e
+
     # Define some logging aliases
-    source ~/lib/bash/bashutils.sh || `: # Use my library if available`\
-    `: fall back to echo`
-    alias info=echo && \
-    alias warn=echo && \
-    alias error=echo
+    source ~/lib/bash/bashutils.sh || : Use my library if available \
+    : else fall back to echo && \
+    function info() { echo "$@"; } && \
+    function warn() { echo "$@"; } && \
+    function error() { echo "$@"; } && \
+    function announce() { echo "$@"; }
 
     #
     # Defaults for parameters that control find(1)
@@ -34,14 +50,14 @@ function latest (
     #
     # defaults for parameters that control grep of file content
     #
-    GREP=${GREP:-}
+    REGEX=${REGEX:-}
     #
     # define errors to be ignored
     #
     # TODO grep out?
 
 
-    function usage ()  {
+    function usage {
         verbosity=${1:-"short"}
 
         cat <<EOF 1>&2
@@ -109,11 +125,10 @@ EOF2
     }
 
     # Save extra FIND/GREP flags here
-    FINDFLAGS=()
     GREPFLAGS=()
 
     # parse optons
-    while [[ $# > 0 ]]; do
+    while [[ $# -gt 0 ]]; do
         case ${1} in
         -h)             usage "short" && return 1;;
             --help)	usage "long" && return 1;;
@@ -122,7 +137,7 @@ EOF2
         # Fine opions
            --mtime)
                shift;
-               MTIME="$1"; [[ $# > 0 ]] && shift || die '--age requires an argument';;
+               MTIME="$1"; [[ $# -gt 0 ]] && shift || die '--age requires an argument';;
            -w|--where)
                shift;
                WHERE="$1" && shift || die '--where requires an argument';;
@@ -146,7 +161,7 @@ EOF2
     found_what=false
     found_regex=false
 
-    while [[ $# > 0 ]]; do
+    while [[ $# -gt 0 ]]; do
         if [[ "$1" = */* ]]; then
             WHERE=$1;
             shift;
@@ -172,7 +187,7 @@ EOF2
     REGEX=`echo "$REGEX" | sed 's# #\\\s#g'`
     # echo REGEX after regex fixes '>'$REGEX'<'
 
-    if [[ $# > 0 ]]; then
+    if [[ $# -gt 0 ]]; then
         die "too many arguments given.  At most 3 allowed.  Unknow: ${ARGV[*]}"
     fi
 
@@ -189,7 +204,7 @@ EOF2
         `: prune 'junk' files and dirs` \
         -regextype posix-extended \
         -xdev \
-        -regex "${prune}" -prune -o \
+        -regex "${PRUNE}" -prune -o \
         `: only look at regular files ` \
         -type f \
         `: restrict to mtime MTIME days ago` \
@@ -199,4 +214,4 @@ EOF2
         ${GREPFLAGS[*]}
 
     [[ -v DEBUG ]] && set +x
-)
+) # function
