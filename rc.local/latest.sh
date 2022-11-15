@@ -24,8 +24,8 @@ function latest (
 
 
     # This is bash.  Be safe.
-    set -u
-    set -e
+    # set -u
+    # set -e
 
     # Define some logging aliases
     source ~/lib/bash/bashutils.sh || : Use my library if available \
@@ -34,7 +34,7 @@ function latest (
     function warn() { echo "$@"; } && \
     function error() { echo "$@"; } && \
     function announce() { echo "$@"; } && \
-    function die { echo "$@"; exit 1; }
+    function die { echo "$@"; return; }
 
     #
     # check dependancies
@@ -51,7 +51,7 @@ function latest (
     WHERE=${WHERE:-.}
     # define filenames/paths to be ignored
     #   "junk" stanard on linux systems
-    PRUNE_LINUX='git/|backups/|auto-save-list|config/|snap/|cache/|local/|mozilla/|target/|.rustup/|.cargo/|.venv'
+    PRUNE_LINUX='/.git/|backups/|auto-save-list|/.config/|snap/|/.cache/|/.local/|/.mozilla/|/.targe|/.rustup/|/.cargo/|/.venv/'
     #   junk specific to me  Your junk milage may vary.
     PRUNE_JUST_ME='blog/docs'
     PRUNE=".*(${PRUNE_JUST_ME}|${PRUNE_LINUX}).*"

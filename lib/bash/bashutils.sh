@@ -11,7 +11,7 @@
 
 
 # This is bash.  Be safe.
-set -u
+#set -u
 # This causes login shells to exit on error
 #
 #set -e
