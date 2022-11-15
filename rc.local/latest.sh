@@ -33,7 +33,15 @@ function latest (
     function info() { echo "$@"; } && \
     function warn() { echo "$@"; } && \
     function error() { echo "$@"; } && \
-    function announce() { echo "$@"; }
+    function announce() { echo "$@"; } && \
+    function die { echo "$@"; exit 1; }
+
+    #
+    # check dependancies
+    #
+
+    TIMEOUT=30 # max run at 30 seconds
+    which timeout > /dev/null || die "Timeout not found"
 
     #
     # Defaults for parameters that control find(1)
@@ -43,7 +51,7 @@ function latest (
     WHERE=${WHERE:-.}
     # define filenames/paths to be ignored
     #   "junk" stanard on linux systems
-    PRUNE_LINUX='git/|backups/|auto-save-list|config/|snap/|cache/|local/|mozilla/|target/|.rustup/|.cargo/'
+    PRUNE_LINUX='git/|backups/|auto-save-list|config/|snap/|cache/|local/|mozilla/|target/|.rustup/|.cargo/|.venv'
     #   junk specific to me  Your junk milage may vary.
     PRUNE_JUST_ME='blog/docs'
     PRUNE=".*(${PRUNE_JUST_ME}|${PRUNE_LINUX}).*"
@@ -51,6 +59,7 @@ function latest (
     # defaults for parameters that control grep of file content
     #
     REGEX=${REGEX:-}
+    GREPCOLOR="always"
     #
     # define errors to be ignored
     #
@@ -70,13 +79,15 @@ Options
   -d|--debug           print debugging
 
   Find Optons
-     --mtime=MTIME     Max age of files to find.   Default: $MTIME
-  -w|--where=DIR       Where to search for files.  Default: $WHERE
+     --mtime MTIME     Max age of files to find.   Default: $MTIME
+  -w|--where DIR       Where to search for files.  Default: $WHERE
 
   Grep Options
+    |--color COLOR     Grep color.                 Default: $GREPCOLOR
+                       "always","never", or "auto".
   -i|--ignore-case     Ignore case.                Default: case sensitive.
-  -g|--grep=REGEX      Regex to grep in files.     Default: None.
-
+  -g|--grep REGEX      Regex to grep in files.     Default: None.
+  -l|--files-with-matches Only print filename      Default: print match as well.
 
 Arguments
   First one or two positons.
@@ -120,8 +131,6 @@ $ latest ~/Org .org DONE
 EOF2
         fi
 
-
-
     }
 
     # Save extra FIND/GREP flags here
@@ -134,7 +143,7 @@ EOF2
             --help)	usage "long" && return 1;;
         -d|--debug)	DEBUG=1 && shift;;
 
-        # Fine opions
+        # Find options
            --mtime)
                shift;
                MTIME="$1"; [[ $# -gt 0 ]] && shift || die '--age requires an argument';;
@@ -143,6 +152,11 @@ EOF2
                WHERE="$1" && shift || die '--where requires an argument';;
 
         # Grep options
+           --color)
+            shift;
+            GREPCOLOR="${1}" && shift || die '--color requires an argument';
+            ;;
+
         -g|--grep)
             shift;
             REGEX="${1}" && shift || die '--grep requires an argument';
@@ -150,6 +164,9 @@ EOF2
         -i|--ignore-case)
             shift;
             GREPFLAGS+=("-i");;
+        -l|--files-with-matches)
+            shift;
+            GREPFLAGS+=("-l");;
         -*)              error "Unknown flag: $1" && return 1;;
         *)             break;;
        esac
@@ -182,28 +199,33 @@ EOF2
 
     # Do things to make regular expressions pass down correctly
     #
-    # echo REGEX before regex fixes '>'$REGEX'<'
     #   - ' ' -> '\\s'
     REGEX=`echo "$REGEX" | sed 's# #\\\s#g'`
-    # echo REGEX after regex fixes '>'$REGEX'<'
 
     if [[ $# -gt 0 ]]; then
         die "too many arguments given.  At most 3 allowed.  Unknow: ${ARGV[*]}"
     fi
 
     if [[ ${REGEX} != "" ]]; then
-       GREPFLAGS=("-exec" "grep" ${GREPFLAGS[@]} "--color=always" "-H ""-E"  "$REGEX" '{}' ';')
+       GREPFLAGS=("-exec" "grep" ${GREPFLAGS[@]} "--color=${GREPCOLOR}" "-H ""-E"  "$REGEX" '{}' ';')
    else
        GREPFLAGS=( '-print' )
    fi
 
-   [[ -v DEBUG ]] && set -x
+    [[ -v DEBUG ]] && set -x
 
-   find -L ${WHERE} \
+    # this shoud be removed;  If not, find failed/timed out
+    RUNNING=$(mktemp /tmp/latest.XXXXXX)
+
+    # Run in a subshell to allow timeout
+    ( \
+      `: limit run to TIMEOUT seconds` \
+        timeout $TIMEOUT \
+        find -L ${WHERE} \
         `: global options` \
-        `: prune 'junk' files and dirs` \
         -regextype posix-extended \
         -xdev \
+        `: prune 'junk' files and dirs` \
         -regex "${PRUNE}" -prune -o \
         `: only look at regular files ` \
         -type f \
@@ -211,7 +233,17 @@ EOF2
         -mtime -${MTIME}\
         `: restrict to files that match WHAT in full path` \
         -regex ".*${WHAT}.*" \
-        ${GREPFLAGS[*]}
+        `: run grep if requestd` \
+        ${GREPFLAGS[*]} && \
+        `: If find finished, remove RUNNING file.  Timeout will leave it.` \
+         \rm -f $RUNNING \
+        ) \
+        # |& grep -v -E ': Permission|: Too many levels'
+
+    if [[ -f "${RUNNING}" ]]; then
+        warn "Find did not finish.  Timeout or error";
+        \rm ${RUNNING}
+    fi
 
     [[ -v DEBUG ]] && set +x
 ) # function
