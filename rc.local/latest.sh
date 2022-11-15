@@ -1,4 +1,14 @@
+# shellcheck shell=bash
+
+# shellcheck disable=SC3046 # "source" is more readable than "."
+# shellcheck disable=SC1090 # allow source from other locations
+# shellcheck disable=SC2112 # "function" is more readable than "()"
+
+# "(" IS valid here.  Function is subshell, own namespace.
+
+# shellcheck disable=SC1036,SC1065,SC1088
 function latest (
+
     # Find lastest modified files[ and grep them].  Because my life is in .org files now...
     #
     # This is really just a wrapper around find -exec grep,
@@ -12,13 +22,19 @@ function latest (
     #     + usually using --color
     #   - Ignoring junk (PRUNE)
 
+
+    # This is bash.  Be safe.
+    # set -u
+    # set -e
+
     # Define some logging aliases
-    source ~/lib/bash/bashutils.sh || `: # Use my library if available`\
-    `: fall back to echo`
-    alias info=echo && \
-    alias warn=echo && \
-    alias error=echo && \
-    function die { echo "$@"; exit 1; }
+    source ~/lib/bash/bashutils.sh || : Use my library if available \
+    : else fall back to echo && \
+    function info() { echo "$@"; } && \
+    function warn() { echo "$@"; } && \
+    function error() { echo "$@"; } && \
+    function announce() { echo "$@"; } && \
+    function die { echo "$@"; return; }
 
     #
     # check dependancies
@@ -35,22 +51,22 @@ function latest (
     WHERE=${WHERE:-.}
     # define filenames/paths to be ignored
     #   "junk" stanard on linux systems
-    PRUNE_LINUX='git/|backups/|auto-save-list|config/|snap/|cache/|local/|mozilla/|target/|.rustup/|.cargo/|.venv'
+    PRUNE_LINUX='/.git/|backups/|auto-save-list|/.config/|snap/|/.cache/|/.local/|/.mozilla/|/.targe|/.rustup/|/.cargo/|/.venv/'
     #   junk specific to me  Your junk milage may vary.
     PRUNE_JUST_ME='blog/docs'
     PRUNE=".*(${PRUNE_JUST_ME}|${PRUNE_LINUX}).*"
     #
     # defaults for parameters that control grep of file content
     #
+    REGEX=${REGEX:-}
     GREPCOLOR="always"
-    GREP=${GREP:-}
     #
     # define errors to be ignored
     #
     # TODO grep out?
 
 
-    function usage ()  {
+    function usage {
         verbosity=${1:-"short"}
 
         cat <<EOF 1>&2
@@ -115,25 +131,22 @@ $ latest ~/Org .org DONE
 EOF2
         fi
 
-
-
     }
 
     # Save extra FIND/GREP flags here
-    FINDFLAGS=()
     GREPFLAGS=()
 
     # parse optons
-    while [[ $# > 0 ]]; do
+    while [[ $# -gt 0 ]]; do
         case ${1} in
         -h)             usage "short" && return 1;;
             --help)	usage "long" && return 1;;
         -d|--debug)	DEBUG=1 && shift;;
 
-        # Fine opions
+        # Find options
            --mtime)
                shift;
-               MTIME="$1"; [[ $# > 0 ]] && shift || die '--age requires an argument';;
+               MTIME="$1"; [[ $# -gt 0 ]] && shift || die '--age requires an argument';;
            -w|--where)
                shift;
                WHERE="$1" && shift || die '--where requires an argument';;
@@ -165,7 +178,7 @@ EOF2
     found_what=false
     found_regex=false
 
-    while [[ $# > 0 ]]; do
+    while [[ $# -gt 0 ]]; do
         if [[ "$1" = */* ]]; then
             WHERE=$1;
             shift;
@@ -186,12 +199,10 @@ EOF2
 
     # Do things to make regular expressions pass down correctly
     #
-    # echo REGEX before regex fixes '>'$REGEX'<'
     #   - ' ' -> '\\s'
     REGEX=`echo "$REGEX" | sed 's# #\\\s#g'`
-    # echo REGEX after regex fixes '>'$REGEX'<'
 
-    if [[ $# > 0 ]]; then
+    if [[ $# -gt 0 ]]; then
         die "too many arguments given.  At most 3 allowed.  Unknow: ${ARGV[*]}"
     fi
 
@@ -237,4 +248,4 @@ EOF2
     fi
 
     [[ -v DEBUG ]] && set +x
-)
+) # function

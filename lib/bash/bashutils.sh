@@ -8,8 +8,14 @@
 #   Possibly figure out how to detect login/interactive shell
 #   and only set if not in login/interactive shell
 #
+
+
+# This is bash.  Be safe.
 #set -u
+# This causes login shells to exit on error
+#
 #set -e
+
 
 ARGV=("$@")
 ARGC=("$#")
