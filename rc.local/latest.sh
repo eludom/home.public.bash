@@ -79,6 +79,7 @@ Options
   -d|--debug           print debugging
 
   Find Optons
+  -L                   Follow links                Default: Do not follow links.
      --mtime MTIME     Max age of files to find.   Default: $MTIME
   -w|--where DIR       Where to search for files.  Default: $WHERE
 
@@ -135,6 +136,7 @@ EOF2
 
     # Save extra FIND/GREP flags here
     GREPFLAGS=()
+    FINDFLAGS=()
 
     # parse optons
     while [[ $# -gt 0 ]]; do
@@ -150,6 +152,9 @@ EOF2
            -w|--where)
                shift;
                WHERE="$1" && shift || die '--where requires an argument';;
+           -L)
+            shift;
+            FINDFLAGS+=("-L");;
 
         # Grep options
            --color)
@@ -222,7 +227,7 @@ EOF2
       `: limit run to TIMEOUT seconds` \
         timeout $TIMEOUT \
         find \
-        `: -L ` \
+        ${FINDFLAGS[*]} \
         ${WHERE} \
         `: global options` \
         -regextype posix-extended \
