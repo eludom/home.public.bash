@@ -210,7 +210,9 @@ EOF2
     ( \
       `: limit run to TIMEOUT seconds` \
         timeout $TIMEOUT \
-        find -L ${WHERE} \
+        find \
+        `: -L ` \
+        ${WHERE} \
         `: global options` \
         -regextype posix-extended \
         -xdev \
