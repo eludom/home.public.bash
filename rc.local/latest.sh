@@ -7,34 +7,38 @@
 # "(" IS valid here.  Function is subshell, own namespace.
 
 # shellcheck disable=SC1036,SC1065,SC1088
-function latest (
+function latest ()
+{
+    (
 
-    # Find lastest modified files[ and grep them].  Because my life is in .org files now...
-    #
-    # This is really just a wrapper around find -exec grep,
-    # but it encapsulates some defaults/patterns I use a lot
-    #
-    #   - Looking for recently modified (MTIME) files
-    #   - Looking at certain types of files (WHAT, e.g. .org)
-    #   - Looking in the current directory (WHERE) usually
-    #   - Grep(1)ing for file content (GREP)
-    #     + sometimes case insensitive
-    #     + usually using --color
-    #   - Ignoring junk (PRUNE)
+        # Find lastest modified files[ and grep them].  Because my life is in .org files now...
+        #
+        # This is really just a wrapper around find -exec grep,
+        # but it encapsulates some defaults/patterns I use a lot
+        #
+        #   - Looking for recently modified (MTIME) files
+        #   - Looking at certain types of files (WHAT, e.g. .org)
+        #   - Looking in the current directory (WHERE) usually
+        #   - Grep(1)ing for file content (GREP)
+        #     + sometimes case insensitive
+        #     + usually using --color
+        #   - Ignoring junk (PRUNE)
 
 
-    # This is bash.  Be safe.
-    # set -u
-    # set -e
+        # This is bash.  Be safe.
+        # set -u
+        # set -e
 
-    # Define some logging aliases
-    source ~/lib/bash/bashutils.sh || : Use my library if available \
-    : else fall back to echo && \
-    function info() { echo "$@"; } && \
-    function warn() { echo "$@"; } && \
-    function error() { echo "$@"; } && \
-    function announce() { echo "$@"; } && \
-    function die { echo "$@"; return; }
+
+        # Pull in my logging utils if available
+        { test -f ~/lib/bash/bashutils.sh && source ~/lib/bash/bashutils.sh ; } ||
+            {
+                # fall back to echo
+                function info() { echo "$@"; };
+                function warn() { echo "$@"; };
+                function error() { echo "$@"; };
+                function die { echo "$@"; exit 1; };
+            }
 
     #
     # check dependancies
@@ -148,10 +152,10 @@ EOF2
         # Find options
            --mtime)
                shift;
-               MTIME="$1"; [[ $# -gt 0 ]] && shift || die '--age requires an argument';;
+               MTIME="$1"; { { [[ $# -gt 0 ]] && shift; } || die '--mtime requires an argument'; }  ;;
            -w|--where)
                shift;
-               WHERE="$1" && shift || die '--where requires an argument';;
+               WHERE="$1";  { { [[ $# -gt 0 ]] && shift; } || die '--where requires an argument'; }  ;;
            -L)
             shift;
             FINDFLAGS+=("-L");;
@@ -159,13 +163,11 @@ EOF2
         # Grep options
            --color)
             shift;
-            GREPCOLOR="${1}" && shift || die '--color requires an argument';
-            ;;
+           GREPCOLOR="${1}";  { { [[ $# -gt 0 ]] && shift; } || die '--color requires an argument'; }  ;;
 
         -g|--grep)
             shift;
-            REGEX="${1}" && shift || die '--grep requires an argument';
-            ;;
+            REGEX="${1}";  { { [[ $# -gt 0 ]] && shift; } || die '--grep requires an argument'; }  ;;
         -i|--ignore-case)
             shift;
             GREPFLAGS+=("-i");;
@@ -253,4 +255,4 @@ EOF2
     fi
 
     [[ -v DEBUG ]] && set +x
-) # function
+)} # function
