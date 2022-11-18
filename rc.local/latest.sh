@@ -268,7 +268,7 @@ EOF2
         -regex ".*${WHAT}.*" \
         \
         $(: COMMENT run grep if requested: "${GREPFLAGS[*]}") \
-        "${GREPFLAGS[*]}" && \
+        ${GREPFLAGS[*]} && \
         \
         $(: COMMENT If find finished, remove RUNNING file "${RUNNING}".  Timeout will leave it) \
          /bin/rm -f "$RUNNING" \
