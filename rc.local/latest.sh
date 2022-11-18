@@ -1,33 +1,41 @@
-# shellcheck shell=bash
+# Usage: latest [-h] [options] [WHERE] [MTIME] [[WHAT] REGEX]]
+#
+# Find lastest modified files[ and grep them].
+# Because my life is in .org files now...
+#
+# This is really just a wrapper around find -exec grep,
+# but it encapsulates some defaults/patterns I use a lot
+#
+#   - Looking for .org files (default)
+#   - Looking for recently modified (MTIME) files
+#   - Looking for other types of files (WHAT, e.g. .txt)
+#   - Looking in the current directory (WHERE) usually
+#   - Grep(1)ing for file content (GREP)
+#     + sometimes case insensitive
+#     + usually using --color
+#   - Ignoring junk (PRUNE)
 
+#
+# This is bash, be safe
+#
+# shellcheck shell=bash
 # shellcheck disable=SC3046 # "source" is more readable than "."
 # shellcheck disable=SC1090 # allow source from other locations
 # shellcheck disable=SC2112 # "function" is more readable than "()"
-
-# "(" IS valid here.  Function is subshell, own namespace.
 
 # shellcheck disable=SC1036,SC1065,SC1088
 function latest ()
 {
     (
 
-        # Find lastest modified files[ and grep them].  Because my life is in .org files now...
-        #
-        # This is really just a wrapper around find -exec grep,
-        # but it encapsulates some defaults/patterns I use a lot
-        #
-        #   - Looking for recently modified (MTIME) files
-        #   - Looking at certain types of files (WHAT, e.g. .org)
-        #   - Looking in the current directory (WHERE) usually
-        #   - Grep(1)ing for file content (GREP)
-        #     + sometimes case insensitive
-        #     + usually using --color
-        #   - Ignoring junk (PRUNE)
 
 
         # This is bash.  Be safe.
-        # set -u
-        # set -e
+        set -u
+        set -e
+        # These are running in the context of the subshell
+        # so they will not affect the parent (login) shell
+        # but will give us extra checks/safety.
 
 
         # Pull in my logging utils if available
@@ -44,8 +52,6 @@ function latest ()
     # check dependancies
     #
 
-    TIMEOUT=30 # max run at 30 seconds
-    which timeout > /dev/null || die "Timeout not found"
 
     #
     # Defaults for parameters that control find(1)
@@ -53,6 +59,9 @@ function latest ()
     WHAT=${WHAT:-org}
     MTIME=${MTIME:-7}
     WHERE=${WHERE:-.}
+    TIMEOUT=30 # max run at 30 seconds
+    which timeout > /dev/null || die "Timeout not found"
+
     # define filenames/paths to be ignored
     #   "junk" stanard on linux systems
     PRUNE_LINUX='/.git/|backups/|auto-save-list|/.config/|snap/|/.cache/|/.local/|/.mozilla/|/.targe|/.rustup/|/.cargo/|/.venv/'
@@ -81,6 +90,7 @@ Options
   -h                   print short help text
      --help            print long help text
   -d|--debug           print debugging
+  -t|--timeout TIMEOUT Timeout find command        Default: $TIMEOUT
 
   Find Optons
   -L                   Follow links                Default: Do not follow links.
@@ -148,6 +158,9 @@ EOF2
         -h)             usage "short" && return 1;;
             --help)	usage "long" && return 1;;
         -d|--debug)	DEBUG=1 && shift;;
+        -t|--timeout)
+               shift;
+               TIMEOUT="$1";  { { [[ $# -gt 0 ]] && shift; } || die '--timeout requires an argument'; }  ;;
 
         # Find options
            --mtime)
@@ -220,43 +233,54 @@ EOF2
     [[ -v DEBUG ]] && set -x
 
     # this shoud be removed;  If not, find failed/timed out
-    RUNNING=$(mktemp /tmp/latest.XXXXXX)
+    RUNNING=$(mktemp /tmp/latest-running.XXXXXX)
+
+
+# shellcheck disable=SC2046 # Quote this to prevent word splitting.
+#
+#   This is to all the
+#
+#     $(: COMMENT comments here)
+#
+#   syntax work without warning.
 
     # Run in a subshell to allow timeout
     ( \
-      : COMMENT limit run to TIMEOUT seconds &&\
-        timeout $TIMEOUT \
+        $(: COMMENT limit run to "$TIMEOUT" seconds) \
+        timeout "$TIMEOUT" \
         find \
-        ${FINDFLAGS[*]} \
-        ${WHERE} \
+        "${FINDFLAGS[@]}" \
+        "${WHERE}" \
         \
         $(: COMMENT global options) \
         -regextype posix-extended \
         -xdev \
         \
-        $(: COMMENT prune 'junk' files and dirs )\
+        $(: COMMENT prune 'junk' files and dirs: "${PRUNE}" )\
         -regex "${PRUNE}" -prune -o \
-        $(:only look at regular files) \
+        $(: only look at regular files) \
         -type f \
         \
-        $(: COMMENT restrict to mtime MTIME days ag) \
-        -mtime -${MTIME}\
+        $(: COMMENT restrict to mtime "$MTIME" days ago) \
+        -mtime -"${MTIME}"\
         \
-        $(:COMMENT restrict to files that match WHAT in full pat) \
+        $(: COMMENT restrict to files that match "$WHAT" in full pat) \
         -regex ".*${WHAT}.*" \
         \
-        $(:COMMENTrun grep if request) \
-        ${GREPFLAGS[*]} && \
+        $(: COMMENT run grep if requested: "${GREPFLAGS[*]}") \
+        "${GREPFLAGS[*]}" && \
         \
-        $(: COMMENT If find finished, remove RUNNING file.  Timeout will leave it) \
-         \rm -f $RUNNING \
+        $(: COMMENT If find finished, remove RUNNING file "${RUNNING}".  Timeout will leave it) \
+         /bin/rm -f "$RUNNING" \
         ) \
         # |& grep -v -E ': Permission|: Too many levels'
 
+# shellcheck enable=quote-safe-variables
+
     if [[ -f "${RUNNING}" ]]; then
         warn "Find did not finish.  Timeout or error";
-        \rm ${RUNNING}
+        \rm "${RUNNING}"
     fi
 
     [[ -v DEBUG ]] && set +x
-)} # function
+)}
