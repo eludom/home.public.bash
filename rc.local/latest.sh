@@ -183,7 +183,6 @@ EOF2
 
 
     found_what=false
-    found_regex=false
 
     while [[ $# -gt 0 ]]; do
         if [[ "$1" = */* ]]; then
@@ -194,7 +193,6 @@ EOF2
             shift
         elif [[ $found_what == true ]]; then
             REGEX="$1";
-            found_regex=true;
             shift;
         else
             found_what=true;
@@ -207,14 +205,14 @@ EOF2
     # Do things to make regular expressions pass down correctly
     #
     #   - ' ' -> '\\s'
-    REGEX=`echo "$REGEX" | sed 's# #\\\s#g'`
+    REGEX="${REGEX// /\\s}"
 
     if [[ $# -gt 0 ]]; then
         die "too many arguments given.  At most 3 allowed.  Unknow: ${ARGV[*]}"
     fi
 
     if [[ ${REGEX} != "" ]]; then
-       GREPFLAGS=("-exec" "grep" ${GREPFLAGS[@]} "--color=${GREPCOLOR}" "-H ""-E"  "$REGEX" '{}' ';')
+       GREPFLAGS=("-exec" "grep" "${GREPFLAGS[@]}" "--color=${GREPCOLOR}" "-H ""-E"  "$REGEX" '{}' ';')
    else
        GREPFLAGS=( '-print' )
    fi
@@ -226,25 +224,31 @@ EOF2
 
     # Run in a subshell to allow timeout
     ( \
-      `: limit run to TIMEOUT seconds` \
+      : COMMENT limit run to TIMEOUT seconds &&\
         timeout $TIMEOUT \
         find \
         ${FINDFLAGS[*]} \
         ${WHERE} \
-        `: global options` \
+        \
+        $(: COMMENT global options) \
         -regextype posix-extended \
         -xdev \
-        `: prune 'junk' files and dirs` \
+        \
+        $(: COMMENT prune 'junk' files and dirs )\
         -regex "${PRUNE}" -prune -o \
-        `: only look at regular files ` \
+        $(:only look at regular files) \
         -type f \
-        `: restrict to mtime MTIME days ago` \
+        \
+        $(: COMMENT restrict to mtime MTIME days ag) \
         -mtime -${MTIME}\
-        `: restrict to files that match WHAT in full path` \
+        \
+        $(:COMMENT restrict to files that match WHAT in full pat) \
         -regex ".*${WHAT}.*" \
-        `: run grep if requestd` \
+        \
+        $(:COMMENTrun grep if request) \
         ${GREPFLAGS[*]} && \
-        `: If find finished, remove RUNNING file.  Timeout will leave it.` \
+        \
+        $(: COMMENT If find finished, remove RUNNING file.  Timeout will leave it) \
          \rm -f $RUNNING \
         ) \
         # |& grep -v -E ': Permission|: Too many levels'
