@@ -143,6 +143,9 @@ $ latest .txt baz
 $ latest ~/Org .org DONE
 /home/gmj/Org/agenda-files/blogging.org:**** DONE g/re/p
 /home/gmj/Org/agenda-files/blogging.org:**** DONE Write next "40 years of walled garden & open platforms" article
+
+# Find the lastest .org and py files, 120 days old or les
+latest 120 '(\.py$|\.org$)'
 EOF2
         fi
 
