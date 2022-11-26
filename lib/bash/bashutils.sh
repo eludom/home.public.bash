@@ -76,7 +76,17 @@ function error() { echo `date +%c` `stackfuncs`\: error: "$@" 1>&2; }
 # TODO
 #   have it check debug levels and or strings
 function debug() { [[ -v DEBUG ]] && echo `date +%c` `stackfuncs`\: debug: "$@" 1>&2 || true ; }
-function die()   { echo `date +%c` `stackfuncs`\: fatal: "$@" 1>&2 && exit 1; }
+function die()   {
+
+    exit_code=1
+    if [[ -v 2 ]]; then
+       exit_code="${1}"
+       shift;
+    fi
+
+    echo `date +%c` `stackfuncs`\: fatal: "$@" 1>&2 && exit "${exit_code}";
+}
+
 
 FALSE=1
 TRUE=0
