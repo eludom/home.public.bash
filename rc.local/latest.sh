@@ -95,6 +95,7 @@ Options
   Find Optons
   -L                   Follow links                Default: Do not follow links.
      --mtime MTIME     Max age of files to find.   Default: $MTIME
+                       0 means "forever"
   -w|--where DIR       Where to search for files.  Default: $WHERE
 
   Grep Options
@@ -214,6 +215,8 @@ EOF2
         fi
 
     done
+
+    if test "$MTIME" = 0; then MTIME=999999; fi
 
     # Do things to make regular expressions pass down correctly
     #
