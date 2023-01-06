@@ -287,3 +287,5 @@ EOF2
 
     [[ -v DEBUG ]] && set +x
 )}
+
+alias see=latest
