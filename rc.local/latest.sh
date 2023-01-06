@@ -60,6 +60,7 @@ function latest ()
     MTIME=${MTIME:-7}
     WHERE=${WHERE:-.}
     TIMEOUT=30 # max run at 30 seconds
+    FIND_REGEX="-regex" # case sensitive by default
     which timeout > /dev/null || die "Timeout not found"
 
     # define filenames/paths to be ignored
@@ -144,6 +145,9 @@ $ latest .txt baz
 $ latest ~/Org .org DONE
 /home/gmj/Org/agenda-files/blogging.org:**** DONE g/re/p
 /home/gmj/Org/agenda-files/blogging.org:**** DONE Write next "40 years of walled garden & open platforms" article
+
+# Find the lastest .org and py files, 120 days old or les
+latest 120 '(\.py$|\.org$)'
 EOF2
         fi
 
@@ -184,6 +188,7 @@ EOF2
             REGEX="${1}";  { { [[ $# -gt 0 ]] && shift; } || die '--grep requires an argument'; }  ;;
         -i|--ignore-case)
             shift;
+            FIND_REGEX="-iregex"
             GREPFLAGS+=("-i");;
         -l|--files-with-matches)
             shift;
@@ -268,7 +273,7 @@ EOF2
         -mtime -"${MTIME}"\
         \
         $(: COMMENT restrict to files that match "$WHAT" in full pat) \
-        -regex ".*${WHAT}.*" \
+        ${FIND_REGEX} ".*${WHAT}.*" \
         \
         $(: COMMENT run grep if requested: "${GREPFLAGS[*]}") \
         ${GREPFLAGS[*]} && \
@@ -288,4 +293,5 @@ EOF2
     [[ -v DEBUG ]] && set +x
 )}
 
+# "see" where something is
 alias see=latest
