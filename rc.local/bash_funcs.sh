@@ -1,5 +1,5 @@
 #
-# These are bash functions that are getting to large to fint in .bashrc
+# These are bash functions that are getting to large to fit in .bashrc
 #
 source $HOME/lib/bash/bashutils.sh  # error,warning,...
 
