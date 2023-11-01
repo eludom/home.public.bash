@@ -1,31 +1,54 @@
 # These are common functions and settings I use when writing things in bash
 # Usage: source $HOME/lib/bash/bashutils.sh
-
-# TODO Make set -u and set -e selectable
 #
-#   These does not work well in interactive shells.
+# Imports (optional)
 #
-#   Possibly figure out how to detect login/interactive shell
-#   and only set if not in login/interactive shell
+#   # print debug messages
+#   export DEBUG=1
 #
-
-
-# This is bash.  Be safe.
-#set -u
-# This causes login shells to exit on error
+#   # set explicit program name
+#   export PROGNAME=foo
 #
-#set -e
+#   # choose descriptor to use for error messages
+#   export ERROR_FD=1 # stdout
+#   export ERROR_FD=2 # stderr
+#
+#   # choose not to use -u and -e
+#   export NO_ERRORS=1
+#
+# Exports:
+#  ARGV=("$@")
+#  ARGC=("$#")
+#  FALSE=1
+#  TRUE=0
 
 
+# Set -u and -e unless in interative shell or NO_ERRORS set.
+
+if [[ $- == *i* ]]; then
+  IS_INTERACTIVE=1
+fi
+
+if [ "$SHLVL" -eq 1 ]; then
+      IS_LOGIN=1
+fi
+
+if [ -n "$IS_INTERACTIVE" ] || [ -n "$IS_LOGIN" ]; then
+    # These does not work well in interactive shells.
+    :
+elif [ -z "$NO_ERRORS" ]; then
+   # This is bash.  Be safe.
+   set -u -e
+fi
+
+
+# exports
 ARGV=("$@")
 ARGC=("$#")
-#ARGV=("${ARGV[@]:1}") # shift ARGV
-#ARGC=${#ARGV[@]} # get count
+FALSE=1
+TRUE=0
 
 # Helper functions
-
-
-
 
 # Deep bash magic from before the dwan of time...
 # https://gitlab.com/kyb/autorsync/-/blob/master/utils.bash#L84
@@ -56,15 +79,19 @@ function stackfuncs {
         topfunc="${FUNCNAME[$i+1]}"
     done
 
+
     tracefuncs=`echo $tracefuncs | sed 's#:$##'`
 
-    echo "${tracefuncs:-unknown}"
+    default_name="${PROGNAME:-default}"
+
+    echo "${tracefuncs:-$default_name}"
 }
 
 
-function info()  { echo `date +%c` `stackfuncs`\: info: "$@" 1>&2; }
-function warn()  { echo `date +%c` `stackfuncs`\: warning: "$@" 1>&2; }
-function error() { echo `date +%c` `stackfuncs`\: error: "$@" 1>&2; }
+
+function info()  { echo `date +%c` `stackfuncs`\: info: "$@" >&${ERROR_FD:-2}; }
+function warn()  { echo `date +%c` `stackfuncs`\: warning: "$@" >&${ERROR_FD:-2}; }
+function error() { echo `date +%c` `stackfuncs`\: error: "$@" >&${ERROR_FD:-2}; }
 # Temporary debug messages
 #   DEBUG=1 debug foo
 #
@@ -75,7 +102,7 @@ function error() { echo `date +%c` `stackfuncs`\: error: "$@" 1>&2; }
 #
 # TODO
 #   have it check debug levels and or strings
-function debug() { [[ -v DEBUG ]] && echo `date +%c` `stackfuncs`\: debug: "$@" 1>&2 || true ; }
+function debug() { [[ -v DEBUG ]] && echo `date +%c` `stackfuncs`\: debug: "$@" >&${ERROR_FD:-2} || true ; }
 function die()   {
 
     exit_code=1
@@ -84,9 +111,5 @@ function die()   {
        shift;
     fi
 
-    echo `date +%c` `stackfuncs`\: fatal: "$@" 1>&2 && exit "${exit_code}";
+    echo `date +%c` `stackfuncs`\: fatal: "$@" >&${ERROR_FD:-2} && exit "${exit_code}";
 }
-
-
-FALSE=1
-TRUE=0
