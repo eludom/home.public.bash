@@ -33,10 +33,10 @@ if [ "$SHLVL" -eq 1 ]; then
       IS_LOGIN=1
 fi
 
-if [ -n "$IS_INTERACTIVE" ] || [ -n "$IS_LOGIN" ]; then
+if [ -n "${IS_INTERACTIVE+xxx}" ] || [ -n "${IS_LOGIN+xxx}" ]; then
     # These does not work well in interactive shells.
     :
-elif [ -z "$NO_ERRORS" ]; then
+elif [ -z "${NO_ERRORS+xxx}" ]; then
    # This is bash.  Be safe.
    set -u -e
 fi
