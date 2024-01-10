@@ -2,6 +2,7 @@
 # Usage: source $HOME/lib/bash/bashutils.sh
 #
 # Imports (optional)
+#   Set these to control behavior
 #
 #   # print debug messages
 #   export DEBUG=1
@@ -17,6 +18,8 @@
 #   export NO_ERRORS=1
 #
 # Exports:
+#   These are defined and exported
+#
 #  ARGV=("$@")
 #  ARGC=("$#")
 #  FALSE=1
