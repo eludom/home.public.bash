@@ -56,7 +56,7 @@ function latest ()
     #
     # Defaults for parameters that control find(1)
     #
-    WHAT=${WHAT:-org}
+    WHAT=${WHAT:-org$}
     MTIME=${MTIME:-7}
     WHERE=${WHERE:-.}
     TIMEOUT=30 # max run at 30 seconds
@@ -67,7 +67,7 @@ function latest ()
     #   "junk" stanard on linux systems
     PRUNE_LINUX='/.git/|backups/|auto-save-list|/.config/|snap/|/.cache/|/.local/|/.mozilla/|/.targe|/.rustup/|/.cargo/|/.venv/'
     #   junk specific to me  Your junk milage may vary.
-    PRUNE_JUST_ME='blog/docs'
+    PRUNE_JUST_ME='blog/docs|orgfiles'
     PRUNE=".*(${PRUNE_JUST_ME}|${PRUNE_LINUX}).*"
     #
     # defaults for parameters that control grep of file content
