@@ -1,4 +1,4 @@
-# Usage: latest [-h] [options] [WHERE] [MTIME] [[WHAT] REGEX]]
+# Usage: latest [-h] [options] [WHERE] [MTIME] [[FILENAMES] REGEX]]
 #
 # Find lastest modified files[ and grep them].
 # Because my life is in .org files now...
@@ -8,7 +8,7 @@
 #
 #   - Looking for .org files (default)
 #   - Looking for recently modified (MTIME) files
-#   - Looking for other types of files (WHAT, e.g. .txt)
+#   - Looking for other types of files (FILENAMES, e.g. .txt)
 #   - Looking in the current directory (WHERE) usually
 #   - Grep(1)ing for file content (GREP)
 #     + sometimes case insensitive
@@ -56,7 +56,7 @@ function latest ()
     #
     # Defaults for parameters that control find(1)
     #
-    WHAT=${WHAT:-org$}
+    FILENAMES=${FILENAMES:-org$}
     MTIME=${MTIME:-7}
     WHERE=${WHERE:-.}
     TIMEOUT=30 # max run at 30 seconds
@@ -67,7 +67,7 @@ function latest ()
     #   "junk" stanard on linux systems
     PRUNE_LINUX='/.git/|backups/|auto-save-list|/.config/|snap/|/.cache/|/.local/|/.mozilla/|/.targe|/.rustup/|/.cargo/|/.venv/'
     #   junk specific to me  Your junk milage may vary.
-    PRUNE_JUST_ME='blog/docs|orgfiles'
+    PRUNE_JUST_ME='blog/docs|orgfiles|stow|backups'
     PRUNE=".*(${PRUNE_JUST_ME}|${PRUNE_LINUX}).*"
     #
     # defaults for parameters that control grep of file content
@@ -84,7 +84,7 @@ function latest ()
         verbosity=${1:-"short"}
 
         cat <<EOF 1>&2
-Usage: latest [options] [WHERE] [MTIME] [[WHAT] REGEX]]
+Usage: latest [options] [WHERE] [MTIME] [[FILENAMES] REGEX]]
 Find the latest files and what's in them.
 
 Options
@@ -112,7 +112,7 @@ Arguments
     MTIME           Max age.  Digits.  Overrides --mtime.
 
   First non-age (digits), non-path (contains "/") argument
-    WHAT		Filenames to search for, in full path.  Default: $WHAT
+    FILENAMES		Filenames to search for, in full path.  Default: $FILENAMES
 
   Second non-age (digits), non-path (contains "/") argument
     REGEX         Regex to grep.  Overrrides -g.
@@ -201,21 +201,37 @@ EOF2
     # parse args
 
 
-    found_what=false
+    found_filenames=false
+    have_mtime=false
+    have_regex=false;
 
     while [[ $# -gt 0 ]]; do
         if [[ "$1" = */* ]]; then
             WHERE=$1;
+            debug WHERE is $WHERE
             shift;
         elif [[ "$1" =~ ^[0-9]+$ ]]; then
-            MTIME="$1"
-            shift
-        elif [[ $found_what == true ]]; then
-            REGEX="$1";
-            shift;
+            if [[ $have_mtime == false ]]; then
+                MTIME="$1"
+                debug MTIME is $MTIME
+                # the first digits only string is mtime
+                have_mtime=true;
+                shift
+            else
+                REGEX="$1";
+                debug REGEX is $REGEX
+                have_regex=true;
+                shift
+            fi
+        elif [[ $found_filenames == true ]]; then
+                REGEX="$1";
+                debug REGEX is $REGEX
+                have_regex=true;
+                shift;
         else
-            found_what=true;
-            WHAT="$1";
+            found_filenames=true;
+            FILENAMES="$1";
+            debug FILENAMES is $FILENAMES
             shift;
         fi
 
@@ -272,8 +288,8 @@ EOF2
         $(: COMMENT restrict to mtime "$MTIME" days ago) \
         -mtime -"${MTIME}"\
         \
-        $(: COMMENT restrict to files that match "$WHAT" in full pat) \
-        ${FIND_REGEX} ".*${WHAT}.*" \
+        $(: COMMENT restrict to files that match "$FILENAMES" in full pat) \
+        ${FIND_REGEX} ".*${FILENAMES}.*" \
         \
         $(: COMMENT run grep if requested: "${GREPFLAGS[*]}") \
         ${GREPFLAGS[*]} && \
