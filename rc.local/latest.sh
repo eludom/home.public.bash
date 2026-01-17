@@ -1,4 +1,4 @@
-# Usage: latest [-h] [options] [WHERE] [MTIME] [[FILENAMES] REGEX]]
+# Usage: latest [options] [WHERE]
 #
 # Find lastest modified files[ and grep them].
 # Because my life is in .org files now...
@@ -84,7 +84,7 @@ function latest ()
         verbosity=${1:-"short"}
 
         cat <<EOF 1>&2
-Usage: latest [options] [WHERE] [MTIME] [[FILENAMES] REGEX]]
+Usage: latest [options] [WHERE]
 Find the latest files and what's in them.
 
 Options
@@ -93,29 +93,21 @@ Options
   -d|--debug           print debugging
   -t|--timeout TIMEOUT Timeout find command        Default: $TIMEOUT
 
-  Find Optons
+  Find Options
   -L                   Follow links                Default: Do not follow links.
-     --mtime MTIME     Max age of files to find.   Default: $MTIME
+  -m|--mtime MTIME     Max age of files to find.   Default: $MTIME
                        0 means "forever"
-  -w|--where DIR       Where to search for files.  Default: $WHERE
+  -f|--files PATTERN   Filename pattern to match.  Default: $FILENAMES
 
   Grep Options
-    |--color COLOR     Grep color.                 Default: $GREPCOLOR
+     --color COLOR     Grep color.                 Default: $GREPCOLOR
                        "always","never", or "auto".
   -i|--ignore-case     Ignore case.                Default: case sensitive.
   -g|--grep REGEX      Regex to grep in files.     Default: None.
   -l|--files-with-matches Only print filename      Default: print match as well.
 
 Arguments
-  First one or two positons.
-    WHERE           A path (incuding "/").  Overrides -w.
-    MTIME           Max age.  Digits.  Overrides --mtime.
-
-  First non-age (digits), non-path (contains "/") argument
-    FILENAMES		Filenames to search for, in full path.  Default: $FILENAMES
-
-  Second non-age (digits), non-path (contains "/") argument
-    REGEX         Regex to grep.  Overrrides -g.
+  WHERE                Directory to search.        Default: $WHERE
 EOF
 
         if [ "$verbosity" == "long" ]; then
@@ -128,26 +120,29 @@ $ latest
 ./test.org
 
 # find org files with an mtime <= 14 days in the current directory
-$ latest 14
+$ latest -m 14
 ./test.org
 ./xxy.org
 
 # Find latest .txt files in current directory
-$ latest .txt
+$ latest -f '.txt$'
 ./foo.txt
 
 # Find latest .txt files and grep for "baz"
-$ latest .txt baz
+$ latest -f '.txt$' -g baz
 ./foo.txt:foo bar baz
 ./foo.txt:foo|bar|baz
 
 # Find org files in ~/Org and grep for "DONE"
-$ latest ~/Org .org DONE
+$ latest -g DONE ~/Org
 /home/gmj/Org/agenda-files/blogging.org:**** DONE g/re/p
 /home/gmj/Org/agenda-files/blogging.org:**** DONE Write next "40 years of walled garden & open platforms" article
 
-# Find the lastest .org and py files, 120 days old or les
-latest 120 '(\.py$|\.org$)'
+# Find the lastest .org and py files, 120 days old or less
+$ latest -m 120 -f '(\.py$|\.org$)'
+
+# Grep for a pattern with "/" in it
+$ latest -g 'notes/gpt' ~/
 EOF2
         fi
 
@@ -168,9 +163,12 @@ EOF2
                TIMEOUT="$1";  { { [[ $# -gt 0 ]] && shift; } || die '--timeout requires an argument'; }  ;;
 
         # Find options
-           --mtime)
+           -m|--mtime)
                shift;
                MTIME="$1"; { { [[ $# -gt 0 ]] && shift; } || die '--mtime requires an argument'; }  ;;
+           -f|--files)
+               shift;
+               FILENAMES="$1"; { { [[ $# -gt 0 ]] && shift; } || die '--files requires an argument'; }  ;;
            -w|--where)
                shift;
                WHERE="$1";  { { [[ $# -gt 0 ]] && shift; } || die '--where requires an argument'; }  ;;
@@ -198,44 +196,15 @@ EOF2
        esac
     done
 
-    # parse args
+    # parse positional args - only WHERE is accepted
+    if [[ $# -gt 1 ]]; then
+        die "Too many arguments. Only WHERE is accepted as positional argument. Use flags for other options."
+    fi
 
-
-    found_filenames=false
-    have_mtime=false
-    have_regex=false;
-
-    while [[ $# -gt 0 ]]; do
-        if [[ "$1" = */* ]]; then
-            WHERE=$1;
-            debug WHERE is $WHERE
-            shift;
-        elif [[ "$1" =~ ^[0-9]+$ ]]; then
-            if [[ $have_mtime == false ]]; then
-                MTIME="$1"
-                debug MTIME is $MTIME
-                # the first digits only string is mtime
-                have_mtime=true;
-                shift
-            else
-                REGEX="$1";
-                debug REGEX is $REGEX
-                have_regex=true;
-                shift
-            fi
-        elif [[ $found_filenames == true ]]; then
-                REGEX="$1";
-                debug REGEX is $REGEX
-                have_regex=true;
-                shift;
-        else
-            found_filenames=true;
-            FILENAMES="$1";
-            debug FILENAMES is $FILENAMES
-            shift;
-        fi
-
-    done
+    if [[ $# -eq 1 ]]; then
+        WHERE="$1"
+        debug WHERE is $WHERE
+    fi
 
     if test "$MTIME" = 0; then MTIME=999999; fi
 
@@ -244,9 +213,6 @@ EOF2
     #   - ' ' -> '\\s'
     REGEX="${REGEX// /\\s}"
 
-    if [[ $# -gt 0 ]]; then
-        die "too many arguments given.  At most 3 allowed.  Unknow: ${ARGV[*]}"
-    fi
 
     if [[ ${REGEX} != "" ]]; then
        GREPFLAGS=("-exec" "grep" "${GREPFLAGS[@]}" "--color=${GREPCOLOR}" "-H ""-E"  "$REGEX" '{}' ';')
