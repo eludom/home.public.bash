@@ -94,7 +94,7 @@ Options
   -t|--timeout TIMEOUT Timeout find command        Default: $TIMEOUT
 
   Find Options
-  -L                   Follow links                Default: Do not follow links.
+  -P|--no-follow       Do not follow symlinks      Default: Follow symlinks.
   -m|--mtime MTIME     Max age of files to find.   Default: $MTIME
                        0 means "forever"
   -f|--files PATTERN   Filename pattern to match.  Default: $FILENAMES
@@ -150,7 +150,7 @@ EOF2
 
     # Save extra FIND/GREP flags here
     GREPFLAGS=()
-    FINDFLAGS=()
+    FINDFLAGS=("-L")  # Follow symlinks by default
 
     # parse optons
     while [[ $# -gt 0 ]]; do
@@ -172,9 +172,9 @@ EOF2
            -w|--where)
                shift;
                WHERE="$1";  { { [[ $# -gt 0 ]] && shift; } || die '--where requires an argument'; }  ;;
-           -L)
+           -P|--no-follow)
             shift;
-            FINDFLAGS+=("-L");;
+            FINDFLAGS=();;
 
         # Grep options
            --color)
