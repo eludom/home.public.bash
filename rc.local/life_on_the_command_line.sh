@@ -6,16 +6,3 @@
 # Weather
 alias weather='curl "wttr.in/20187,US?u"'
 
-# Calendar
-
-# Mail
-# - notmuch
-
-# "News"-ish
-
-# RSS feeds
-
-# Social media-ish
-# - Mastadon
-# - micro.blog
-# - org-social 
